@@ -1,0 +1,64 @@
+
+import os
+from dotenv import find_dotenv, load_dotenv
+from requests import session
+import logging
+
+
+payload = {
+    '__RequestVerificationToken': '',
+    'username': os.environ.get("KAGGLE_USERNAME"),
+    'password': os.environ.get("KAGGLE_PASSWORD"),
+    'rememberme': 'false'
+}
+
+def extract_data(dataURL, file_path):
+    """
+    extract data from kaggle
+    """
+    #setup session
+    with requests.Session() as c:
+        response = c.get(loginURL).text
+        AFToken = response[response.index('antiForgeryToken')+19:response.index('isAnonymous: ')-12]
+        payload['__RequestVerificationToken']=AFToken
+        c.post(loginURL + "?isModal=true&returnUrl=/", data=payload)
+    
+        with open(file_path, 'wb') as handle:
+            response = c.get(dataURL, stream=True)
+            for block in response.iter_content(1024):
+                handle.write(block)
+                
+def main(project_dir):
+    """
+    # get logger
+    """
+    logger = logging.getLogger(__name__)
+    logger.info('getting raw data')
+    
+    #urls
+    train_url = 'https://www.kaggle.com/c/titanic/download/train.csv'
+    test_url = 'https://www.kaggle.com/c/titanic/download/test.csv'
+    
+    #file_paths
+    raw_data_path = os.path.join(os.path.pardir,'data','raw')
+    train_data_path = os.path.join(raw_data_path,'train.csv')
+    test_data_path = os.path.join(raw_data_path,'test.csv')
+
+    #extract data
+    extract_data(train_url, train_data_path)
+    extract_data(test_url, test_data_path)
+    logger.info('downloaded raw training and testing data')
+if __name__ = '__main__':
+    # getting root directory
+    project_dir = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+    
+    #setup logger
+    log_fmt = '%(asctime)s - %(levelname)s - %(message)s'
+    logging.basicConfig(level=loggig.INFO, format=log_fmt)
+    
+    #find .env automatically
+    dotenv_path = find_dotenv()
+    #load
+    load_dotenv(dotenv_path)
+    #call main
+    main(project_dir)
